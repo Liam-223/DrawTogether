@@ -4,6 +4,11 @@ function byId(id) {
   return document.getElementById(id);
 }
 
+const topbar = byId("topbar");
+const boardMenu = byId("boardMenu");
+const mobileMenuBtn = byId("mobileMenuBtn");
+const drawingControls = byId("drawingControls");
+
 const canvas = byId("boardCanvas");
 const ctx = canvas.getContext("2d");
 
@@ -87,6 +92,7 @@ export {
   boardActionTitle,
   boardCodePill,
   boardCodeValue,
+  boardMenu,
   boardExpiryTimer,
   boardNotifications,
   brushPreview,
@@ -101,6 +107,7 @@ export {
   ctx,
   displayNameInput,
   drawToolBtn,
+  drawingControls,
   eraserToolBtn,
   exportAreaSelect,
   exportBackgroundSelect,
@@ -114,6 +121,7 @@ export {
   joinBoardBtn,
   liveCursors,
   loadingScreen,
+  mobileMenuBtn,
   mouseCoordinates,
   newBoardBtn,
   openBoardsCount,
@@ -133,6 +141,7 @@ export {
   shortcutsDialog,
   sizeSlider,
   sizeValue,
+  topbar,
   undoBtn,
   zoomPercentage
 };

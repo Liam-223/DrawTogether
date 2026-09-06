@@ -70,11 +70,21 @@
     </div>
 
     <main class="app-shell">
-      <header class="topbar">
-        <div>
+      <header id="topbar" class="topbar">
+        <div class="brand-lockup">
           <h1>DrawTogether<span class="brand-suffix">.art</span></h1>
         </div>
-        <div class="status-wrap">
+        <button
+          id="mobileMenuBtn"
+          class="mobile-menu-btn"
+          type="button"
+          aria-label="Board menu"
+          aria-controls="boardMenu"
+          aria-expanded="false"
+        >
+          <span aria-hidden="true">•••</span>
+        </button>
+        <div id="boardMenu" class="status-wrap">
           <span id="connectionStatus" class="pill status">Connecting...</span>
           <span id="peerCount" class="pill">0 online</span>
           <button
@@ -95,7 +105,7 @@
         </div>
       </header>
 
-      <section class="controls" aria-label="Drawing controls">
+      <section id="drawingControls" class="controls" aria-label="Drawing controls">
         <div class="tool-row" role="group" aria-label="Tool selection">
           <button
             id="drawToolBtn"
@@ -151,7 +161,7 @@
           </button>
         </div>
 
-        <label class="control-group">
+        <label class="control-group color-control">
           <span>Color</span>
           <input id="colorPicker" type="color" value="#0b7285" />
         </label>
@@ -215,8 +225,8 @@
           ></button>
         </div>
 
-        <label class="control-group">
-          <span>Brush size</span>
+        <label class="control-group size-control">
+          <span class="size-control-label"><span class="desktop-size-label">Brush size</span><span class="mobile-size-label">Size</span></span>
           <input id="sizeSlider" type="range" min="1" max="67" value="4" />
           <output
             id="sizeValue"
@@ -243,10 +253,6 @@
         <button id="clearBoardBtn" class="action danger" type="button">Clear board</button>
       </section>
 
-      <p class="mobile-gesture-hint" role="note">
-        Pinch with two fingers to zoom or pan the board. Draw with one finger.
-      </p>
-
       <section class="canvas-wrap" aria-label="Drawing board">
         <canvas id="boardCanvas"></canvas>
         <div class="canvas-readout" aria-hidden="true">
@@ -255,6 +261,9 @@
         </div>
         <div id="cameraMoveHint" class="camera-move-hint" role="note" aria-live="polite" hidden>
           Tip: Hold Space and drag, use middle mouse button, or pinch to move the canvas.
+        </div>
+        <div class="mobile-canvas-hint" role="note" aria-hidden="true">
+          Pinch to zoom <span aria-hidden="true">•</span> two fingers to pan
         </div>
         <div id="liveCursors" class="live-cursors" aria-hidden="true"></div>
         <div

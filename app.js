@@ -3,6 +3,7 @@ import {
   airbrushToolBtn,
   boardCodePill,
   boardCodeValue,
+  boardMenu,
   boardNotifications,
   boardActionCancelBtn,
   boardActionConfirmBtn,
@@ -26,6 +27,7 @@ import {
   ctx,
   displayNameInput,
   drawToolBtn,
+  drawingControls,
   eraserToolBtn,
   exportAreaSelect,
   exportBackgroundSelect,
@@ -41,6 +43,7 @@ import {
   openBoardsCount,
   mouseCoordinates,
   loadingScreen,
+  mobileMenuBtn,
   newBoardBtn,
   palette,
   peerCount,
@@ -58,6 +61,7 @@ import {
   shortcutsDialog,
   sizeSlider,
   sizeValue,
+  topbar,
   undoBtn,
   zoomPercentage
 } from "./scripts/ui/dom-elements.js";
@@ -100,6 +104,7 @@ import { createSettingsController } from "./scripts/ui/settings-controller.js";
 import { createLiveCursorRenderer } from "./scripts/ui/live-cursor-renderer.js";
 import { createHistoryController } from "./scripts/history/history-controller.js";
 import { createBoardStatusRenderer } from "./scripts/ui/board-status-renderer.js";
+import { createMobileLayoutController } from "./scripts/ui/mobile-layout-controller.js";
 
 applyRuntimeCssVariables(rootElement);
 
@@ -433,6 +438,17 @@ const historyController = createHistoryController({
   onError: handleDatabaseError
 });
 historyController.updateClearButtonVisibility();
+
+const mobileLayoutController = createMobileLayoutController({
+  topbar,
+  menuButton: mobileMenuBtn,
+  menu: boardMenu,
+  controls: drawingControls,
+  resetViewButton: resetViewBtn,
+  clearBoardButton: clearBoardBtn,
+  onLayoutChange: () => cameraController.resizeCanvas()
+});
+mobileLayoutController.bind();
 
 function handleDatabaseError(error) {
   console.error(error);
