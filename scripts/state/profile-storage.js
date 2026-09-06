@@ -3,6 +3,7 @@ import { clamp } from "../core/shared-utils.js";
 
 const PROFILE_STORAGE_KEY = "drawtogether.profile.v1";
 const DEFAULT_PROFILE_COLOR = "#27b2c9";
+const MAX_RECENT_COLORS = 6;
 const VALID_TOOLS = new Set(["draw", "airbrush", "eraser", "pipette"]);
 
 function randomGuestName() {
@@ -25,6 +26,27 @@ function sanitizeTool(value) {
   return VALID_TOOLS.has(value) ? value : "draw";
 }
 
+function sanitizeRecentColors(value) {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  const colors = [];
+  for (const entry of value) {
+    const color = String(entry || "").trim().toLowerCase();
+    if (!/^#[0-9a-f]{6}$/.test(color) || colors.includes(color)) {
+      continue;
+    }
+
+    colors.push(color);
+    if (colors.length === MAX_RECENT_COLORS) {
+      break;
+    }
+  }
+
+  return colors;
+}
+
 function sanitizeBrushSize(value, minBrushSize, maxBrushSize, defaultBrushSize) {
   const numeric = Number(value);
   if (!Number.isFinite(numeric)) {
@@ -44,7 +66,9 @@ function createDefaultProfile(defaultBrushSize) {
     color: DEFAULT_PROFILE_COLOR,
     brushSize: defaultBrushSize,
     activeTool: "draw",
+    recentColors: [],
     showQuickColors: appConfig.board?.showQuickColorsDefault === true,
+    showRecentColors: appConfig.board?.showRecentColorsDefault !== false,
     showPattern: appConfig.board?.showPatternDefault !== false,
     showFooterContact: appConfig.ui?.showFooterContactDefault !== false
   };
@@ -63,9 +87,14 @@ function loadProfile(minBrushSize, maxBrushSize, defaultBrushSize) {
       color: sanitizeColor(saved.color),
       brushSize: sanitizeBrushSize(saved.brushSize, minBrushSize, maxBrushSize, defaultBrushSize),
       activeTool: sanitizeTool(saved.activeTool),
+      recentColors: sanitizeRecentColors(saved.recentColors),
       showQuickColors: readBoolean(
         saved.showQuickColors,
         appConfig.board?.showQuickColorsDefault === true
+      ),
+      showRecentColors: readBoolean(
+        saved.showRecentColors,
+        appConfig.board?.showRecentColorsDefault !== false
       ),
       showPattern: readBoolean(
         saved.showPattern,
@@ -86,6 +115,7 @@ function saveProfile(profile) {
 }
 
 export {
+  MAX_RECENT_COLORS,
   PROFILE_STORAGE_KEY,
   createDefaultProfile,
   loadProfile,
@@ -93,6 +123,7 @@ export {
   sanitizeBrushSize,
   sanitizeColor,
   sanitizeName,
+  sanitizeRecentColors,
   sanitizeTool,
   saveProfile
 };

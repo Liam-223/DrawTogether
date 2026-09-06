@@ -7,7 +7,8 @@ export const appConfig = {
     maxZoom: 4.5,
     edgePadding: 140,
     showPatternDefault: true,
-    showQuickColorsDefault: false
+    showQuickColorsDefault: false,
+    showRecentColorsDefault: true
   },
   brush: {
     minSize: 1,

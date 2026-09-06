@@ -4,19 +4,16 @@ function createMobileLayoutController({
   menu,
   controls,
   resetViewButton,
-  clearBoardButton,
   breakpoint = 720,
   onLayoutChange = () => {}
 }) {
   const mobileQuery = window.matchMedia(`(max-width: ${breakpoint}px)`);
   const resetMarker = document.createComment("reset-view-button-home");
-  const clearMarker = document.createComment("clear-board-button-home");
   let resizeObserver = null;
   let measuredHeaderHeight = null;
   let measuredToolbarHeight = null;
 
   resetViewButton.before(resetMarker);
-  clearBoardButton.before(clearMarker);
 
   function isMobile() {
     return mobileQuery.matches;
@@ -46,12 +43,11 @@ function createMobileLayoutController({
 
   function moveBoardActions() {
     if (isMobile()) {
-      menu.append(resetViewButton, clearBoardButton);
+      menu.append(resetViewButton);
       return;
     }
 
     resetMarker.after(resetViewButton);
-    clearMarker.after(clearBoardButton);
   }
 
   function updateLayoutMeasurements() {
@@ -99,7 +95,7 @@ function createMobileLayoutController({
 
   function handleMenuClick(event) {
     const button = event.target.closest("button");
-    if (!button || button === clearBoardButton || button.id === "boardCodePill") {
+    if (!button || button.id === "boardCodePill") {
       return;
     }
 

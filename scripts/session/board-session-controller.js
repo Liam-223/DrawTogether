@@ -106,6 +106,8 @@ export function createBoardSessionController({
   let boardExpireTimeoutId = null;
   let activeAccessCodeHash = "";
   let databaseSocketConnected = false;
+  let pendingLocalClearEventKey = "";
+  let latestClearAt = -Infinity;
 
   const liveCollaboration = createLiveCollaboration({
     presenceThrottleMs,
@@ -285,6 +287,35 @@ export function createBoardSessionController({
     return Promise.resolve(true);
   }
 
+  async function compactClearedHistory(clearAt) {
+    const oldEventsQuery = query(eventsRef, orderByChild("at"), endAt(clearAt - 1));
+    const oldEventsSnapshot = await get(oldEventsQuery);
+    const eventCleanupPatch = {};
+    const ownerCleanupPatch = {};
+
+    oldEventsSnapshot.forEach((snapshot) => {
+      const eventId = snapshot.key;
+      const oldEvent = snapshot.val();
+      if (!eventId) {
+        return;
+      }
+
+      eventCleanupPatch[`events/${eventId}`] = null;
+
+      if (oldEvent?.type === "stroke" && typeof oldEvent.id === "string" && oldEvent.id) {
+        ownerCleanupPatch[`strokeOwners/${oldEvent.id}`] = null;
+      }
+    });
+
+    if (Object.keys(eventCleanupPatch).length > 0) {
+      await update(boardRootRef, eventCleanupPatch);
+    }
+
+    if (Object.keys(ownerCleanupPatch).length > 0) {
+      await update(boardRootRef, ownerCleanupPatch);
+    }
+  }
+
   async function clearBoardHistory() {
     const state = getState();
     if (state.boardExpired || !state.isBoardOwner || !eventsRef || !boardRootRef) {
@@ -304,44 +335,45 @@ export function createBoardSessionController({
     };
 
     try {
-      // Publish the clear marker before compacting history so connected clients reset first.
       await set(clearRef, clearEvent);
-      onLocalBoardCleared?.();
-
-      const clearSnapshot = await get(clearRef);
-      const clearAt = Number(clearSnapshot.child("at").val());
-      if (!Number.isFinite(clearAt)) {
-        return true;
-      }
-
-      // Keep anything written at or after the marker.
-      const oldEventsQuery = query(eventsRef, orderByChild("at"), endAt(clearAt - 1));
-      const oldEventsSnapshot = await get(oldEventsQuery);
-      const cleanupPatch = {};
-
-      oldEventsSnapshot.forEach((snapshot) => {
-        const eventId = snapshot.key;
-        const oldEvent = snapshot.val();
-        if (!eventId) {
-          return;
-        }
-
-        cleanupPatch[`events/${eventId}`] = null;
-
-        if (oldEvent?.type === "stroke" && typeof oldEvent.id === "string" && oldEvent.id) {
-          cleanupPatch[`strokeOwners/${oldEvent.id}`] = null;
-        }
-      });
-
-      if (Object.keys(cleanupPatch).length > 0) {
-        await update(boardRootRef, cleanupPatch);
-      }
-
-      return true;
     } catch (error) {
       handleDatabaseError(error);
       throw error;
     }
+
+    // The clear marker is authoritative. Clear this client immediately instead of
+    // waiting for the same event to make a round trip through the listener.
+    pendingLocalClearEventKey = clearRef.key;
+    try {
+      onLocalBoardCleared?.();
+    } catch (error) {
+      console.error("Local board clear failed:", error);
+    }
+
+    let clearAt = NaN;
+    try {
+      const clearSnapshot = await get(clearRef);
+      clearAt = Number(clearSnapshot.child("at").val());
+      if (Number.isFinite(clearAt)) {
+        latestClearAt = Math.max(latestClearAt, clearAt);
+      }
+    } catch (error) {
+      console.warn("Unable to read the clear marker timestamp:", error);
+    }
+
+    if (!Number.isFinite(clearAt)) {
+      return true;
+    }
+
+    // Compaction is best-effort housekeeping. A stale rules deployment should not
+    // make a successful board clear look like the whole connection was rejected.
+    try {
+      await compactClearedHistory(clearAt);
+    } catch (error) {
+      console.warn("Board history cleanup failed after a successful clear:", error);
+    }
+
+    return true;
   }
 
   async function activateRealtimeConnection() {
@@ -638,7 +670,29 @@ export function createBoardSessionController({
         return;
       }
 
-      eventHub.emitRemoteEvent(event, snapshot.key || "");
+      const eventKey = snapshot.key || "";
+      const eventAt = Number(event.at);
+
+      // While our own clear marker is making its way through the ordered listener,
+      // ignore older replayed events so they cannot repopulate the local canvas.
+      if (pendingLocalClearEventKey && eventKey !== pendingLocalClearEventKey) {
+        if (!Number.isFinite(eventAt) || eventAt <= latestClearAt || event.type !== "clear") {
+          return;
+        }
+      }
+
+      if (event.type === "clear") {
+        if (Number.isFinite(eventAt)) {
+          latestClearAt = Math.max(latestClearAt, eventAt);
+        }
+        if (eventKey === pendingLocalClearEventKey) {
+          pendingLocalClearEventKey = "";
+        }
+      } else if (Number.isFinite(eventAt) && eventAt < latestClearAt) {
+        return;
+      }
+
+      eventHub.emitRemoteEvent(event, eventKey);
     }, handleDatabaseError);
 
     onBoardReady?.();

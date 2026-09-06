@@ -47,6 +47,7 @@ import {
   newBoardBtn,
   palette,
   peerCount,
+  recentPalette,
   pipetteToolBtn,
   redoBtn,
   resetViewBtn,
@@ -58,6 +59,7 @@ import {
   showFooterContactInput,
   showPatternInput,
   showQuickColorsInput,
+  showRecentColorsInput,
   shortcutsDialog,
   sizeSlider,
   sizeValue,
@@ -93,6 +95,7 @@ import {
 import { isFirebaseConfigReady } from "./scripts/ui/connection-ui.js";
 import { createExportController } from "./scripts/export/export-controller.js";
 import { createToolUiController } from "./scripts/ui/tool-ui-controller.js";
+import { createRecentColorsController } from "./scripts/ui/recent-colors-controller.js";
 import { loadViewState } from "./scripts/state/view-state-storage.js";
 import { createBoardNotificationCenter } from "./scripts/ui/board-notifications.js";
 import { createClearEventNotifier } from "./scripts/ui/clear-event-notifications.js";
@@ -233,8 +236,10 @@ const cameraController = createCameraController({
 
 function applyProfileVisibility() {
   document.body.classList.toggle("palette-hidden", !profile.showQuickColors);
+  document.body.classList.toggle("recent-colors-hidden", !profile.showRecentColors);
   document.body.classList.toggle("footer-hidden", !profile.showFooterContact);
   rootElement.classList.toggle("palette-hidden", !profile.showQuickColors);
+  rootElement.classList.toggle("recent-colors-hidden", !profile.showRecentColors);
   rootElement.classList.toggle("footer-hidden", !profile.showFooterContact);
 }
 
@@ -243,6 +248,7 @@ function applyProfileToUI() {
   identityColorInput.value = profile.color;
   displayNameInput.value = profile.name;
   showQuickColorsInput.checked = profile.showQuickColors;
+  showRecentColorsInput.checked = profile.showRecentColors;
   showPatternInput.checked = profile.showPattern;
   showFooterContactInput.checked = profile.showFooterContact;
   applyProfileVisibility();
@@ -365,12 +371,15 @@ exportDialog.addEventListener("cancel", (event) => {
   exportController.closeExportDialog();
 });
 
+let recentColorsController = null;
+
 const toolUiController = createToolUiController({
-  ui: { canvas, ctx, palette, colorPicker, sizeSlider, sizeValue, brushPreview },
+  ui: { canvas, ctx, palette, recentPalette, colorPicker, sizeSlider, sizeValue, brushPreview },
   tools: { toolButtons: TOOL_BUTTONS, drawTools: DRAW_TOOLS },
   brush: { minBrushSize: MIN_BRUSH_SIZE, maxBrushSize: MAX_BRUSH_SIZE },
   view,
   getProfile: () => profile,
+  recordRecentColor: (color) => recentColorsController?.record(color),
   stateApi: {
     getUiState: () => {
       const interaction = inputController?.getInteractionState() || { isTouchGesture: false, isPanning: false };
@@ -400,12 +409,21 @@ const {
   clampBrushSize,
   hideBrushPreview,
   pickCanvasColor,
+  selectColor,
   setActiveTool,
   setBrushSize,
   updateBrushPreview
 } = toolUiController;
 
+recentColorsController = createRecentColorsController({
+  container: recentPalette,
+  getProfile: () => profile,
+  getCurrentColor: () => colorPicker.value,
+  selectColor
+});
+
 toolUiController.bindEvents();
+recentColorsController.bind();
 setBrushSize(profile.brushSize);
 setActiveTool(profile.activeTool);
 
@@ -419,6 +437,7 @@ createSettingsController({
     identityColor: identityColorInput,
     brushSize: sizeSlider,
     showQuickColors: showQuickColorsInput,
+    showRecentColors: showRecentColorsInput,
     showPattern: showPatternInput,
     showFooterContact: showFooterContactInput
   },
@@ -460,7 +479,6 @@ const mobileLayoutController = createMobileLayoutController({
   menu: boardMenu,
   controls: drawingControls,
   resetViewButton: resetViewBtn,
-  clearBoardButton: clearBoardBtn,
   onLayoutChange: () => cameraController.resizeCanvas()
 });
 mobileLayoutController.bind();

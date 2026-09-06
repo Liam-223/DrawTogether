@@ -14,6 +14,7 @@ const ctx = canvas.getContext("2d");
 
 const colorPicker = byId("colorPicker");
 const palette = byId("palette");
+const recentPalette = byId("recentPalette");
 const sizeSlider = byId("sizeSlider");
 const sizeValue = byId("sizeValue");
 
@@ -49,6 +50,7 @@ const settingsForm = byId("settingsForm");
 const displayNameInput = byId("displayNameInput");
 const identityColorInput = byId("identityColorInput");
 const showQuickColorsInput = byId("showQuickColorsInput");
+const showRecentColorsInput = byId("showRecentColorsInput");
 const showPatternInput = byId("showPatternInput");
 const showFooterContactInput = byId("showFooterContactInput");
 const exportPngSettingsBtn = byId("exportPngSettingsBtn");
@@ -127,6 +129,7 @@ export {
   openBoardsCount,
   palette,
   peerCount,
+  recentPalette,
   pipetteToolBtn,
   redoBtn,
   resetViewBtn,
@@ -138,6 +141,7 @@ export {
   showFooterContactInput,
   showPatternInput,
   showQuickColorsInput,
+  showRecentColorsInput,
   shortcutsDialog,
   sizeSlider,
   sizeValue,

@@ -10,9 +10,10 @@ function createToolUiController({
   brush,
   view,
   getProfile,
+  recordRecentColor = () => {},
   stateApi
 }) {
-  const { canvas, ctx, palette, colorPicker, sizeSlider, sizeValue, brushPreview } = ui;
+  const { canvas, ctx, palette, recentPalette, colorPicker, sizeSlider, sizeValue, brushPreview } = ui;
   const { toolButtons, drawTools } = tools;
   const { minBrushSize, maxBrushSize } = brush;
   const { getUiState, getActiveTool, setActiveToolState } = stateApi;
@@ -93,8 +94,25 @@ function createToolUiController({
 
   function setActiveSwatch(color) {
     const normalized = String(color || "").toLowerCase();
-    for (const swatch of palette.querySelectorAll(".swatch")) {
-      swatch.classList.toggle("is-active", swatch.dataset.color === normalized);
+    for (const container of [palette, recentPalette]) {
+      for (const swatch of container.querySelectorAll(".swatch")) {
+        swatch.classList.toggle("is-active", swatch.dataset.color === normalized);
+      }
+    }
+  }
+
+  function selectColor(color, { remember = true } = {}) {
+    const normalized = String(color || "").toLowerCase();
+    if (!/^#[0-9a-f]{6}$/.test(normalized)) {
+      return;
+    }
+
+    colorPicker.value = normalized;
+    setActiveSwatch(normalized);
+    setActiveTool("draw");
+
+    if (remember) {
+      recordRecentColor(normalized);
     }
   }
 
@@ -113,9 +131,7 @@ function createToolUiController({
     }
 
     const hex = rgbToHex(r, g, b);
-    colorPicker.value = hex;
-    setActiveSwatch(hex);
-    setActiveTool("draw");
+    selectColor(hex);
     updateBrushPreview();
   }
 
@@ -207,14 +223,15 @@ function createToolUiController({
         return;
       }
 
-      colorPicker.value = selected;
-      setActiveSwatch(selected);
-      setActiveTool("draw");
+      selectColor(selected);
     });
 
     colorPicker.addEventListener("input", () => {
-      setActiveSwatch(colorPicker.value);
-      setActiveTool("draw");
+      selectColor(colorPicker.value, { remember: false });
+    });
+
+    colorPicker.addEventListener("change", () => {
+      recordRecentColor(colorPicker.value);
     });
   }
 
@@ -223,6 +240,7 @@ function createToolUiController({
     clampBrushSize,
     hideBrushPreview,
     pickCanvasColor,
+    selectColor,
     setActiveSwatch,
     setActiveTool,
     setBrushSize,

@@ -27,6 +27,9 @@
           if (profile?.showQuickColors === false) {
             root.classList.add("palette-hidden");
           }
+          if (profile?.showRecentColors === false) {
+            root.classList.add("recent-colors-hidden");
+          }
           if (profile?.showFooterContact === false) {
             root.classList.add("footer-hidden");
           }
@@ -133,7 +136,6 @@
               <path d="M11 14a1 1 0 1 1 0 2a1 1 0 0 1 0-2z"></path>
               <path d="M14 15.5a1 1 0 1 1 0 2a1 1 0 0 1 0-2z"></path>
             </svg>
-            <span class="tool-beta-tag" aria-hidden="true">BETA</span>
           </button>
           <button
             id="eraserToolBtn"
@@ -166,63 +168,67 @@
           <input id="colorPicker" type="color" value="#0b7285" />
         </label>
 
-        <div id="palette" class="palette" role="group" aria-label="Color palette">
-          <button
-            class="swatch is-active"
-            data-color="#27b2c9"
-            style="--swatch:#27b2c9"
-            type="button"
-            aria-label="Color #27b2c9"
-          ></button>
-          <button
-            class="swatch"
-            data-color="#ff6b6b"
-            style="--swatch:#ff6b6b"
-            type="button"
-            aria-label="Color #ff6b6b"
-          ></button>
-          <button
-            class="swatch"
-            data-color="#ffd43b"
-            style="--swatch:#ffd43b"
-            type="button"
-            aria-label="Color #ffd43b"
-          ></button>
-          <button
-            class="swatch"
-            data-color="#69db7c"
-            style="--swatch:#69db7c"
-            type="button"
-            aria-label="Color #69db7c"
-          ></button>
-          <button
-            class="swatch"
-            data-color="#74c0fc"
-            style="--swatch:#74c0fc"
-            type="button"
-            aria-label="Color #74c0fc"
-          ></button>
-          <button
-            class="swatch"
-            data-color="#b197fc"
-            style="--swatch:#b197fc"
-            type="button"
-            aria-label="Color #b197fc"
-          ></button>
-          <button
-            class="swatch"
-            data-color="#f783ac"
-            style="--swatch:#f783ac"
-            type="button"
-            aria-label="Color #f783ac"
-          ></button>
-          <button
-            class="swatch"
-            data-color="#ffffff"
-            style="--swatch:#ffffff"
-            type="button"
-            aria-label="Color #ffffff"
-          ></button>
+        <div id="colorPalettes" class="color-palettes">
+          <div id="recentPalette" class="palette recent-palette" role="group" aria-label="Recent colors"></div>
+
+          <div id="palette" class="palette quick-palette" role="group" aria-label="Quick colors">
+            <button
+              class="swatch is-active"
+              data-color="#27b2c9"
+              style="--swatch:#27b2c9"
+              type="button"
+              aria-label="Color #27b2c9"
+            ></button>
+            <button
+              class="swatch"
+              data-color="#ff6b6b"
+              style="--swatch:#ff6b6b"
+              type="button"
+              aria-label="Color #ff6b6b"
+            ></button>
+            <button
+              class="swatch"
+              data-color="#ffd43b"
+              style="--swatch:#ffd43b"
+              type="button"
+              aria-label="Color #ffd43b"
+            ></button>
+            <button
+              class="swatch"
+              data-color="#69db7c"
+              style="--swatch:#69db7c"
+              type="button"
+              aria-label="Color #69db7c"
+            ></button>
+            <button
+              class="swatch"
+              data-color="#74c0fc"
+              style="--swatch:#74c0fc"
+              type="button"
+              aria-label="Color #74c0fc"
+            ></button>
+            <button
+              class="swatch"
+              data-color="#b197fc"
+              style="--swatch:#b197fc"
+              type="button"
+              aria-label="Color #b197fc"
+            ></button>
+            <button
+              class="swatch"
+              data-color="#f783ac"
+              style="--swatch:#f783ac"
+              type="button"
+              aria-label="Color #f783ac"
+            ></button>
+            <button
+              class="swatch"
+              data-color="#ffffff"
+              style="--swatch:#ffffff"
+              type="button"
+              aria-label="Color #ffffff"
+            ></button>
+          </div>
         </div>
 
         <label class="control-group size-control">
@@ -250,7 +256,6 @@
           </svg>
         </button>
         <button id="resetViewBtn" class="action secondary" type="button">Reset view</button>
-        <button id="clearBoardBtn" class="action danger" type="button">Clear board</button>
       </section>
 
       <section class="canvas-wrap" aria-label="Drawing board">
@@ -320,6 +325,11 @@
         </label>
 
         <label class="settings-field settings-check">
+          <input id="showRecentColorsInput" type="checkbox" />
+          <span>Show recent colors</span>
+        </label>
+
+        <label class="settings-field settings-check">
           <input id="showPatternInput" type="checkbox" checked />
           <span>Show grid pattern</span>
         </label>
@@ -332,6 +342,8 @@
         <div class="settings-actions settings-actions-top">
           <button id="exportPngSettingsBtn" class="action secondary" type="button">Export PNG</button>
         </div>
+
+        <button id="clearBoardBtn" class="action danger settings-clear-board" type="button" hidden>Clear board</button>
 
         <div class="settings-actions">
           <button id="cancelSettingsBtn" class="action secondary" type="button">Cancel</button>

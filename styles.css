@@ -241,23 +241,6 @@ html.booting #boardCodePill {
   position: relative;
 }
 
-.tool-beta-tag {
-  position: absolute;
-  top: -5px;
-  left: 10px;
-  transform: rotate(7deg);
-  border-radius: 999px;
-  padding: 0.05rem 0.28rem;
-  font-size: 0.52rem;
-  font-weight: 700;
-  line-height: 1.15;
-  letter-spacing: 0.05em;
-  color: #5b3c00;
-  background: rgba(255, 207, 92, 0.95);
-  border: 1px solid rgba(161, 106, 0, 0.55);
-  pointer-events: none;
-  user-select: none;
-}
 
 .tool-btn svg,
 .history-btn svg {
@@ -412,14 +395,44 @@ html.booting #boardCodePill {
   display: none;
 }
 
+.color-palettes {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+}
+
 .palette {
   display: flex;
+  align-items: center;
   gap: 0.4rem;
   flex-wrap: wrap;
 }
 
-body.palette-hidden .palette,
-html.palette-hidden .palette {
+.recent-palette:not(:empty)::before {
+  content: "Recent";
+  color: var(--muted);
+  font-size: 0.72rem;
+  white-space: nowrap;
+}
+
+.recent-palette:not(:empty) {
+  padding-inline-end: 0.55rem;
+  border-inline-end: 1px solid var(--line);
+}
+
+.recent-palette:empty {
+  display: none;
+}
+
+body.palette-hidden #palette,
+html.palette-hidden #palette,
+body.palette-hidden .color-palettes.recent-colors-empty,
+html.palette-hidden .color-palettes.recent-colors-empty,
+body.recent-colors-hidden #recentPalette,
+html.recent-colors-hidden #recentPalette,
+body.palette-hidden.recent-colors-hidden .color-palettes,
+html.palette-hidden.recent-colors-hidden .color-palettes {
   display: none;
 }
 
@@ -689,6 +702,11 @@ html.palette-hidden .palette {
 
 .settings-actions-top {
   justify-content: flex-start;
+  margin-bottom: 0.7rem;
+}
+
+.settings-clear-board {
+  width: 100%;
   margin-bottom: 0.7rem;
 }
 
@@ -1053,13 +1071,8 @@ body {
     font-size: 0.78rem;
   }
 
-  #boardCodePill,
-  .status-wrap #clearBoardBtn {
+  #boardCodePill {
     grid-column: 1 / -1;
-  }
-
-  .status-wrap #clearBoardBtn {
-    min-block-size: 46px;
   }
 
   .controls {
@@ -1094,19 +1107,32 @@ body {
     block-size: var(--tool-btn-size);
   }
 
-  .palette {
+  .color-palettes {
     grid-area: palette;
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 0.35rem;
+    gap: 0.45rem;
     width: 100%;
     overflow-x: auto;
+    flex-wrap: nowrap;
     scrollbar-width: none;
   }
 
-  .palette::-webkit-scrollbar {
+  .color-palettes::-webkit-scrollbar {
     display: none;
+  }
+
+  .color-palettes .palette {
+    flex: 0 0 auto;
+    flex-wrap: nowrap;
+  }
+
+  .recent-palette:not(:empty) {
+    padding-inline-end: 0.45rem;
+  }
+
+  .recent-palette:not(:empty)::before {
+    font-size: 0.68rem;
   }
 
   .swatch {
@@ -1180,8 +1206,7 @@ body {
     min-block-size: 42px;
   }
 
-  .controls #resetViewBtn,
-  .controls #clearBoardBtn {
+  .controls #resetViewBtn {
     display: none;
   }
 
@@ -1345,6 +1370,7 @@ body {
     gap: 0.4rem;
   }
 
+  .color-palettes,
   .palette {
     gap: 0.3rem;
   }
@@ -1396,7 +1422,7 @@ body {
     grid-template-areas: "tools color size undo redo";
   }
 
-  .palette {
+  .color-palettes {
     display: none !important;
   }
 

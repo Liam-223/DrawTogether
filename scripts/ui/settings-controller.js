@@ -27,6 +27,7 @@ export function createSettingsController({
   function preview() {
     const profile = getProfile();
     profile.showQuickColors = inputs.showQuickColors.checked;
+    profile.showRecentColors = inputs.showRecentColors.checked;
     profile.showPattern = inputs.showPattern.checked;
     profile.showFooterContact = inputs.showFooterContact.checked;
     applyProfileVisibility();
@@ -52,7 +53,12 @@ export function createSettingsController({
     dialog.showModal();
   });
 
-  for (const input of [inputs.showQuickColors, inputs.showPattern, inputs.showFooterContact]) {
+  for (const input of [
+    inputs.showQuickColors,
+    inputs.showRecentColors,
+    inputs.showPattern,
+    inputs.showFooterContact
+  ]) {
     input.addEventListener("change", preview);
   }
 
@@ -75,7 +81,9 @@ export function createSettingsController({
       color: sanitizeColor(inputs.identityColor.value),
       brushSize: clampBrushSize(inputs.brushSize.value),
       activeTool: sanitizeTool(current.activeTool),
+      recentColors: current.recentColors || [],
       showQuickColors: inputs.showQuickColors.checked,
+      showRecentColors: inputs.showRecentColors.checked,
       showPattern: inputs.showPattern.checked,
       showFooterContact: inputs.showFooterContact.checked
     };
