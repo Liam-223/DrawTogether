@@ -1,0 +1,434 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>DrawTogether</title>
+    <meta
+      name="description"
+      content="Real-time collaborative whiteboard with shared cursors, undo/redo, and board links."
+    />
+    <meta name="theme-color" content="#10141d" />
+    <link rel="icon" type="image/webp" href="art/icon.webp" />
+    <link rel="shortcut icon" type="image/webp" href="art/icon.webp" />
+    <link rel="apple-touch-icon" href="art/icon.webp" />
+    <script>
+      (() => {
+        const root = document.documentElement;
+        root.classList.add("booting");
+
+        try {
+          const raw = localStorage.getItem("drawtogether.profile.v1");
+          if (!raw) {
+            return;
+          }
+
+          const profile = JSON.parse(raw);
+          if (profile?.showQuickColors === false) {
+            root.classList.add("palette-hidden");
+          }
+          if (profile?.showFooterContact === false) {
+            root.classList.add("footer-hidden");
+          }
+        } catch {
+          // Local preferences are optional during boot.
+        }
+      })();
+    </script>
+    <link rel="stylesheet" href="styles.css" />
+    <link
+      rel="stylesheet"
+      href="buymeacoffee/support-widget.css?v=20260626"
+      type="text/css"
+    />
+    <script src="buymeacoffee/support-widget.js?v=20260626" defer></script>
+    <script
+      data-name="BMC-Widget"
+      data-cfasync="false"
+      src="https://cdnjs.buymeacoffee.com/1.0.0/widget.prod.min.js"
+      data-id="liam223"
+      data-description="Support me on Buy me a coffee!"
+      data-message=""
+      data-color="#111827"
+      data-position="left"
+      data-x_margin="18"
+      data-y_margin="18"
+    ></script>
+  </head>
+  <body>
+    <div
+      id="loadingScreen"
+      class="loading-screen"
+      role="status"
+      aria-live="polite"
+      aria-label="Loading DrawTogether"
+    >
+      <div class="loading-screen-inner">
+        <div class="loading-spinner" aria-hidden="true"></div>
+        <p>Loading board...</p>
+      </div>
+    </div>
+
+    <main class="app-shell">
+      <header class="topbar">
+        <div>
+          <h1>DrawTogether<span class="brand-suffix">.art</span></h1>
+        </div>
+        <div class="status-wrap">
+          <span id="connectionStatus" class="pill status">Connecting...</span>
+          <span id="peerCount" class="pill">0 online</span>
+          <button
+            id="boardCodePill"
+            class="pill board-code"
+            type="button"
+            aria-pressed="false"
+            title="Show board code"
+          >
+            Board:
+            <span id="boardCodeValue" class="board-code-value">hidden</span>
+          </button>
+          <button id="newBoardBtn" class="action compact secondary" type="button">New board</button>
+          <button id="joinBoardBtn" class="action compact secondary" type="button">Join by code</button>
+          <button id="copyInviteBtn" class="action compact" type="button">Copy Link</button>
+          <button id="settingsBtn" class="action compact secondary" type="button">Settings</button>
+          <button id="retryConnectBtn" class="action compact secondary" type="button">Retry</button>
+        </div>
+      </header>
+
+      <section class="controls" aria-label="Drawing controls">
+        <div class="tool-row" role="group" aria-label="Tool selection">
+          <button
+            id="drawToolBtn"
+            class="action secondary tool-btn is-active"
+            type="button"
+            aria-label="Draw"
+            title="Draw"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M4 20h4l9.8-9.8-4-4L4 16v4z"></path>
+              <path d="M12.5 5.5l4 4"></path>
+            </svg>
+          </button>
+          <button
+            id="airbrushToolBtn"
+            class="action secondary tool-btn"
+            type="button"
+            aria-label="Airbrush"
+            title="Airbrush"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M6 8h8"></path>
+              <path d="M14 6l4 2-4 2"></path>
+              <path d="M8 12.5a1 1 0 1 1 0 2a1 1 0 0 1 0-2z"></path>
+              <path d="M11 14a1 1 0 1 1 0 2a1 1 0 0 1 0-2z"></path>
+              <path d="M14 15.5a1 1 0 1 1 0 2a1 1 0 0 1 0-2z"></path>
+            </svg>
+            <span class="tool-beta-tag" aria-hidden="true">BETA</span>
+          </button>
+          <button
+            id="eraserToolBtn"
+            class="action secondary tool-btn"
+            type="button"
+            aria-label="Eraser"
+            title="Eraser"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M3 14l7-7 9 9-4 4H7l-4-4z"></path>
+              <path d="M12 20h8"></path>
+            </svg>
+          </button>
+          <button
+            id="pipetteToolBtn"
+            class="action secondary tool-btn"
+            type="button"
+            aria-label="Color picker"
+            title="Color picker"
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+              <path d="M14 4l6 6-3 3-2.2-2.2-4.9 4.9a2 2 0 0 1-2.8 0l-.7-.7a2 2 0 0 1 0-2.8l4.9-4.9L9 5l3-3h2z"></path>
+              <circle cx="6.8" cy="17.2" r="1.2"></circle>
+            </svg>
+          </button>
+        </div>
+
+        <label class="control-group">
+          <span>Color</span>
+          <input id="colorPicker" type="color" value="#0b7285" />
+        </label>
+
+        <div id="palette" class="palette" role="group" aria-label="Color palette">
+          <button
+            class="swatch is-active"
+            data-color="#27b2c9"
+            style="--swatch:#27b2c9"
+            type="button"
+            aria-label="Color #27b2c9"
+          ></button>
+          <button
+            class="swatch"
+            data-color="#ff6b6b"
+            style="--swatch:#ff6b6b"
+            type="button"
+            aria-label="Color #ff6b6b"
+          ></button>
+          <button
+            class="swatch"
+            data-color="#ffd43b"
+            style="--swatch:#ffd43b"
+            type="button"
+            aria-label="Color #ffd43b"
+          ></button>
+          <button
+            class="swatch"
+            data-color="#69db7c"
+            style="--swatch:#69db7c"
+            type="button"
+            aria-label="Color #69db7c"
+          ></button>
+          <button
+            class="swatch"
+            data-color="#74c0fc"
+            style="--swatch:#74c0fc"
+            type="button"
+            aria-label="Color #74c0fc"
+          ></button>
+          <button
+            class="swatch"
+            data-color="#b197fc"
+            style="--swatch:#b197fc"
+            type="button"
+            aria-label="Color #b197fc"
+          ></button>
+          <button
+            class="swatch"
+            data-color="#f783ac"
+            style="--swatch:#f783ac"
+            type="button"
+            aria-label="Color #f783ac"
+          ></button>
+          <button
+            class="swatch"
+            data-color="#ffffff"
+            style="--swatch:#ffffff"
+            type="button"
+            aria-label="Color #ffffff"
+          ></button>
+        </div>
+
+        <label class="control-group">
+          <span>Brush size</span>
+          <input id="sizeSlider" type="range" min="1" max="67" value="4" />
+          <output
+            id="sizeValue"
+            for="sizeSlider"
+            tabindex="0"
+            role="button"
+            title="Click to enter a size"
+          >4px</output>
+        </label>
+
+        <button id="undoBtn" class="action secondary history-btn" type="button" aria-label="Undo" title="Undo">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="M9 7 4 12l5 5"></path>
+            <path d="M4 12h9a5 5 0 1 1 0 10"></path>
+          </svg>
+        </button>
+        <button id="redoBtn" class="action secondary history-btn" type="button" aria-label="Redo" title="Redo">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+            <path d="m15 7 5 5-5 5"></path>
+            <path d="M20 12h-9a5 5 0 1 0 0 10"></path>
+          </svg>
+        </button>
+        <button id="resetViewBtn" class="action secondary" type="button">Reset view</button>
+        <button id="clearBoardBtn" class="action danger" type="button">Clear board</button>
+      </section>
+
+      <p class="mobile-gesture-hint" role="note">
+        Pinch with two fingers to zoom or pan the board. Draw with one finger.
+      </p>
+
+      <section class="canvas-wrap" aria-label="Drawing board">
+        <canvas id="boardCanvas"></canvas>
+        <div class="canvas-readout" aria-hidden="true">
+          <div id="mouseCoordinates" class="mouse-coordinates">x: -- y: --</div>
+          <div id="zoomPercentage" class="zoom-percentage" hidden>100%</div>
+        </div>
+        <div id="cameraMoveHint" class="camera-move-hint" role="note" aria-live="polite" hidden>
+          Tip: Hold Space and drag, use middle mouse button, or pinch to move the canvas.
+        </div>
+        <div id="liveCursors" class="live-cursors" aria-hidden="true"></div>
+        <div
+          id="boardNotifications"
+          class="board-notifications"
+          aria-live="polite"
+          aria-atomic="false"
+        ></div>
+      </section>
+    </main>
+
+    <dialog id="shortcutsDialog" class="settings-dialog shortcuts-dialog">
+      <form method="dialog" class="shortcuts-dialog-content">
+        <div class="shortcuts-dialog-header">
+          <h2>Keyboard shortcuts</h2>
+          <button class="shortcuts-close-btn" type="submit" aria-label="Close shortcuts">×</button>
+        </div>
+
+        <div class="shortcut-list">
+          <div class="shortcut-row"><span>Brush</span><kbd>B</kbd></div>
+          <div class="shortcut-row"><span>Airbrush</span><kbd>A</kbd></div>
+          <div class="shortcut-row"><span>Eraser</span><kbd>E</kbd></div>
+          <div class="shortcut-row"><span>Pipette</span><kbd>P</kbd></div>
+          <div class="shortcut-row"><span>Undo</span><span class="shortcut-keys"><kbd>Ctrl</kbd><span>/</span><kbd>⌘</kbd><span>+</span><kbd>Z</kbd></span></div>
+          <div class="shortcut-row"><span>Redo</span><span class="shortcut-keys"><kbd>Ctrl</kbd><span>/</span><kbd>⌘</kbd><span>+</span><kbd>Shift</kbd><span>+</span><kbd>Z</kbd></span></div>
+          <div class="shortcut-row"><span>Redo alternate</span><span class="shortcut-keys"><kbd>Ctrl</kbd><span>/</span><kbd>⌘</kbd><span>+</span><kbd>Y</kbd></span></div>
+          <div class="shortcut-row"><span>Pan canvas</span><span class="shortcut-keys"><kbd>Space</kbd><span>+</span><span>drag</span></span></div>
+          <div class="shortcut-row"><span>Resize brush</span><span class="shortcut-keys"><kbd>Shift</kbd><span>+</span><span>drag</span></span></div>
+          <div class="shortcut-row"><span>Show shortcuts</span><kbd>?</kbd></div>
+        </div>
+
+        <p class="shortcuts-dialog-note">Press Esc to close.</p>
+      </form>
+    </dialog>
+
+    <dialog id="settingsDialog" class="settings-dialog">
+      <form id="settingsForm" method="dialog">
+        <h2>Your settings</h2>
+        <p class="settings-preview-note">Make sure to save your changes...</p>
+
+        <label class="settings-field">
+          <span>Name</span>
+          <input id="displayNameInput" type="text" maxlength="24" placeholder="Your name" />
+        </label>
+
+        <label class="settings-field">
+          <span>Cursor color</span>
+          <input id="identityColorInput" type="color" value="#27b2c9" />
+        </label>
+
+        <label class="settings-field settings-check">
+          <input id="showQuickColorsInput" type="checkbox" />
+          <span>Show quick colors</span>
+        </label>
+
+        <label class="settings-field settings-check">
+          <input id="showPatternInput" type="checkbox" checked />
+          <span>Show grid pattern</span>
+        </label>
+
+        <label class="settings-field settings-check">
+          <input id="showFooterContactInput" type="checkbox" checked />
+          <span>Show footer contact</span>
+        </label>
+
+        <div class="settings-actions settings-actions-top">
+          <button id="exportPngSettingsBtn" class="action secondary" type="button">Export PNG</button>
+        </div>
+
+        <div class="settings-actions">
+          <button id="cancelSettingsBtn" class="action secondary" type="button">Cancel</button>
+          <button id="saveSettingsBtn" class="action" type="submit">Save</button>
+        </div>
+
+        <div class="settings-footer">
+          <p id="boardExpiryTimer">Board auto delete: --:--:-- left</p>
+          <p id="openBoardsCount">Open boards: --</p>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="exportDialog" class="settings-dialog export-dialog">
+      <form id="exportPngForm" method="dialog">
+        <h2>Export PNG</h2>
+
+        <label class="settings-field">
+          <span>Area</span>
+          <select id="exportAreaSelect">
+            <option value="full" selected>Full board (entire canvas)</option>
+            <option value="viewport">Current viewport</option>
+          </select>
+        </label>
+
+        <label class="settings-field settings-check">
+          <input id="exportIncludeGridInput" type="checkbox" checked />
+          <span>Include grid pattern</span>
+        </label>
+
+        <label class="settings-field">
+          <span>Background</span>
+          <select id="exportBackgroundSelect">
+            <option value="white" selected>White</option>
+            <option value="transparent">Transparent</option>
+          </select>
+        </label>
+
+        <label class="settings-field">
+          <span>Filename (optional)</span>
+          <input
+            id="exportFileNameInput"
+            type="text"
+            maxlength="80"
+            placeholder="drawtogether-export"
+          />
+        </label>
+
+        <p id="exportResolutionHint" class="export-hint">Output: --</p>
+
+        <div class="settings-actions">
+          <button id="cancelExportBtn" class="action secondary" type="button">Cancel</button>
+          <button id="confirmExportBtn" class="action" type="submit">Export PNG</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="boardActionDialog" class="settings-dialog board-action-dialog">
+      <form id="boardActionForm" method="dialog">
+        <h2 id="boardActionTitle">Board Action</h2>
+        <p id="boardActionMessage" class="board-action-message"></p>
+
+        <label id="boardActionInputWrap" class="settings-field" hidden>
+          <span id="boardActionInputLabel">Value</span>
+          <input id="boardActionInput" type="text" maxlength="128" autocomplete="off" />
+        </label>
+
+        <div class="settings-actions">
+          <button id="boardActionCancelBtn" class="action secondary" type="button">Cancel</button>
+          <button id="boardActionConfirmBtn" class="action" type="submit">Continue</button>
+        </div>
+      </form>
+    </dialog>
+
+    <footer class="page-footer" aria-label="Support contact">
+      <p>© 2026 Liam. All rights reserved.</p>
+      <p>
+        Any Questions? E-Mail:
+        <a href="mailto:support@drawtogether.art">support@drawtogether.art</a>
+      </p>
+    </footer>
+
+    <div class="support-bubble-wrap" id="supportBubbleWrapper">
+      <button
+        type="button"
+        class="support-bubble"
+        id="supportBubbleButton"
+        aria-label="Open donation widget"
+        title="Support me"
+      >
+        <img
+          src="buymeacoffee/buy-me-coffee-icon.webp"
+          alt="Buy me a coffee"
+          class="support-bubble-icon"
+        />
+      </button>
+      <button
+        type="button"
+        class="support-bubble-close"
+        id="supportBubbleClose"
+        aria-label="Dismiss support button"
+      >
+        ×
+      </button>
+    </div>
+
+    <script type="module" src="app.js"></script>
+  </body>
+</html>
