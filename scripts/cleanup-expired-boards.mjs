@@ -1,4 +1,9 @@
-import { cert, initializeApp } from "firebase-admin/app";
+import {
+  cert,
+  deleteApp,
+  initializeApp
+} from "firebase-admin/app";
+
 import { getDatabase } from "firebase-admin/database";
 
 const serviceAccountJson = process.env.FIREBASE_SERVICE_ACCOUNT;
@@ -20,74 +25,77 @@ try {
   throw new Error("FIREBASE_SERVICE_ACCOUNT is not valid JSON");
 }
 
-initializeApp({
+const app = initializeApp({
   credential: cert(serviceAccount),
   databaseURL
 });
 
-const db = getDatabase();
-const now = Date.now();
+const db = getDatabase(app);
 
-console.log(
-  `Checking for expired boards at ${new Date(now).toISOString()}`
-);
+try {
+  const now = Date.now();
 
-const policiesSnapshot = await db
-  .ref("boardAccessPolicies")
-  .once("value");
+  console.log(
+    `Checking for expired boards at ${new Date(now).toISOString()}`
+  );
 
-const policies = policiesSnapshot.val() ?? {};
+  const policiesSnapshot = await db
+    .ref("boardAccessPolicies")
+    .once("value");
 
-const expiredBoardIds = [];
-let activeBoardCount = 0;
+  const policies = policiesSnapshot.val() ?? {};
 
-for (const [boardId, policy] of Object.entries(policies)) {
-  const deleteAt = Number(policy?.deleteAt);
+  const expiredBoardIds = [];
+  let activeBoardCount = 0;
 
-  if (!Number.isFinite(deleteAt)) {
-    console.warn(`Skipping ${boardId}: invalid deleteAt`);
-    continue;
+  for (const [boardId, policy] of Object.entries(policies)) {
+    const deleteAt = Number(policy?.deleteAt);
+
+    if (!Number.isFinite(deleteAt)) {
+      console.warn(`Skipping ${boardId}: invalid deleteAt`);
+      continue;
+    }
+
+    if (deleteAt <= now) {
+      expiredBoardIds.push(boardId);
+    } else {
+      activeBoardCount += 1;
+    }
   }
 
-  if (deleteAt <= now) {
-    expiredBoardIds.push(boardId);
+  if (expiredBoardIds.length === 0) {
+    console.log("No expired boards found.");
+
+    await db
+      .ref("publicStats/openBoards")
+      .set(activeBoardCount);
   } else {
-    activeBoardCount += 1;
+    console.log(
+      `Deleting ${expiredBoardIds.length} expired board(s):`,
+      expiredBoardIds
+    );
+
+    const updates = {};
+
+    for (const boardId of expiredBoardIds) {
+      updates[`boards/${boardId}`] = null;
+      updates[`boardAccessPolicies/${boardId}`] = null;
+      updates[`boardAccessSecrets/${boardId}`] = null;
+      updates[`boardAccessSessions/${boardId}`] = null;
+    }
+
+    updates["publicStats/openBoards"] = activeBoardCount;
+
+    await db.ref().update(updates);
+
+    console.log(
+      `Cleanup complete. Deleted ${expiredBoardIds.length} board(s).`
+    );
+
+    console.log(
+      `${activeBoardCount} active board(s) remain.`
+    );
   }
+} finally {
+  await deleteApp(app);
 }
-
-if (expiredBoardIds.length === 0) {
-  console.log("No expired boards found.");
-
-  await db
-    .ref("publicStats/openBoards")
-    .set(activeBoardCount);
-
-  process.exit(0);
-}
-
-console.log(
-  `Deleting ${expiredBoardIds.length} expired board(s):`,
-  expiredBoardIds
-);
-
-const updates = {};
-
-for (const boardId of expiredBoardIds) {
-  updates[`boards/${boardId}`] = null;
-  updates[`boardAccessPolicies/${boardId}`] = null;
-  updates[`boardAccessSecrets/${boardId}`] = null;
-  updates[`boardAccessSessions/${boardId}`] = null;
-}
-
-updates["publicStats/openBoards"] = activeBoardCount;
-
-await db.ref().update(updates);
-
-console.log(
-  `Cleanup complete. Deleted ${expiredBoardIds.length} board(s).`
-);
-
-console.log(
-  `${activeBoardCount} active board(s) remain.`
-);
