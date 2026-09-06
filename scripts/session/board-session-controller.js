@@ -68,7 +68,8 @@ export function createBoardSessionController({
     getCursorState,
     getLiveStroke,
     applyLocalEvent,
-    onLocalBoardCleared
+    onLocalBoardCleared,
+    onBoardReady
   } = runtime;
 
   const eventHub = createSessionEventHub();
@@ -639,6 +640,8 @@ export function createBoardSessionController({
 
       eventHub.emitRemoteEvent(event, snapshot.key || "");
     }, handleDatabaseError);
+
+    onBoardReady?.();
   }
 
   function retryConnection() {

@@ -1,5 +1,6 @@
 const BOARD_ID_RANDOM_BYTES = 8;
 const BOARD_ID_PATTERN = /^[a-z0-9_-]{4,64}$/;
+const ACTIVE_BOARD_SESSION_KEY = "drawtogether.active-board.v1";
 
 function clamp(value, min, max) {
   return Math.max(min, Math.min(max, value));
@@ -25,16 +26,44 @@ function sanitizeBoardId(value) {
   return "";
 }
 
-function getBoardId() {
-  const url = new URL(window.location.href);
-  let board = sanitizeBoardId(url.searchParams.get("board"));
+function readRememberedBoardId() {
+  try {
+    return sanitizeBoardId(sessionStorage.getItem(ACTIVE_BOARD_SESSION_KEY));
+  } catch {
+    return "";
+  }
+}
 
-  if (!board) {
-    board = generateBoardId();
-    url.searchParams.set("board", board);
-    window.history.replaceState({}, "", url);
+function rememberBoardId(boardId) {
+  const normalizedBoardId = sanitizeBoardId(boardId);
+  if (!normalizedBoardId) {
+    return;
   }
 
+  try {
+    sessionStorage.setItem(ACTIVE_BOARD_SESSION_KEY, normalizedBoardId);
+  } catch {
+    // The current page still keeps the board id in memory.
+  }
+}
+
+function getBoardId() {
+  const url = new URL(window.location.href);
+  const boardFromUrl = sanitizeBoardId(url.searchParams.get("board"));
+  if (boardFromUrl) {
+    return boardFromUrl;
+  }
+
+  if (!url.searchParams.has("board")) {
+    const rememberedBoard = readRememberedBoardId();
+    if (rememberedBoard) {
+      return rememberedBoard;
+    }
+  }
+
+  const board = generateBoardId();
+  url.searchParams.set("board", board);
+  window.history.replaceState({}, "", url);
   return board;
 }
 
@@ -105,6 +134,7 @@ export {
   generateBoardId,
   getPointPressure,
   getBoardId,
+  rememberBoardId,
   isPressureSensitiveStroke,
   sanitizeBoardId,
   rgbToHex

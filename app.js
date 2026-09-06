@@ -87,7 +87,8 @@ import { loadProfile } from "./scripts/state/profile-storage.js";
 import {
   countOnlineUsers,
   generateBoardId,
-  getBoardId
+  getBoardId,
+  rememberBoardId
 } from "./scripts/core/shared-utils.js";
 import { isFirebaseConfigReady } from "./scripts/ui/connection-ui.js";
 import { createExportController } from "./scripts/export/export-controller.js";
@@ -115,7 +116,9 @@ const view = {
 };
 
 const boardId = getBoardId();
-const inviteUrl = window.location.href;
+const inviteUrlObject = new URL(window.location.href);
+inviteUrlObject.searchParams.set("board", boardId);
+const inviteUrl = inviteUrlObject.toString();
 let boardCodeVisible = false;
 const VIEW_STORAGE_KEY_PREFIX = "drawtogether.view.v1";
 const BOARD_ACCESS_SESSION_KEY_PREFIX = "drawtogether.board-access.v1";
@@ -277,6 +280,18 @@ function navigateToBoard(nextBoardId) {
   const url = new URL(window.location.href);
   url.searchParams.set("board", nextBoardId);
   window.location.assign(url.toString());
+}
+
+function finalizeBoardUrl() {
+  rememberBoardId(boardId);
+
+  const url = new URL(window.location.href);
+  if (!url.searchParams.has("board")) {
+    return;
+  }
+
+  url.searchParams.delete("board");
+  window.history.replaceState({}, "", url);
 }
 
 const boardAccessController = createBoardAccessController({
@@ -552,7 +567,8 @@ boardSession = createBoardSessionController({
       sharedEvents.length = 0;
       invalidateSharedRenderCache();
       redrawScene();
-    }
+    },
+    onBoardReady: finalizeBoardUrl
   }
 });
 
