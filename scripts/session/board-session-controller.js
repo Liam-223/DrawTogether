@@ -217,36 +217,6 @@ export function createBoardSessionController({
     }, Math.min(remaining, MAX_TIMEOUT_MS));
   }
 
-<<<<<<< Updated upstream
-  async function refreshBoardAccessSession() {
-    if (!boardAccessSessionRef || getState().boardExpired) {
-      return false;
-    }
-
-    const deleteAt = Number(getState().boardDeleteAt);
-    if (!Number.isFinite(deleteAt) || deleteAt <= Date.now()) {
-      return false;
-    }
-
-    const session = {
-      authorizedAt: serverTimestamp(),
-      expireAt: deleteAt
-    };
-    if (activeAccessCodeHash) {
-      session.accessCodeHash = activeAccessCodeHash;
-    }
-
-    try {
-      await set(boardAccessSessionRef, session);
-      return true;
-    } catch (error) {
-      handleDatabaseError(error);
-      return false;
-    }
-  }
-
-=======
->>>>>>> Stashed changes
   async function adjustOpenBoardsCount(delta) {
     if (!openBoardsCountRef || !Number.isFinite(delta) || delta === 0) {
       return;
@@ -373,14 +343,8 @@ export function createBoardSessionController({
     }
   }
 
-<<<<<<< Updated upstream
-  async function restoreRealtimeConnection() {
-    const sessionReady = await refreshBoardAccessSession();
-    if (!sessionReady || getState().boardExpired) {
-=======
   async function activateRealtimeConnection() {
     if (getState().boardExpired) {
->>>>>>> Stashed changes
       return;
     }
 
@@ -390,13 +354,6 @@ export function createBoardSessionController({
       databaseError: false
     });
 
-<<<<<<< Updated upstream
-    const presenceReady = await liveCollaboration.queuePresenceSync(true);
-    if (presenceReady && myPresenceRef) {
-      onDisconnect(myPresenceRef).remove().catch(handleCollaborationError);
-    }
-
-=======
     if (myPresenceRef) {
       try {
         await onDisconnect(myPresenceRef).remove();
@@ -406,7 +363,6 @@ export function createBoardSessionController({
     }
 
     await liveCollaboration.queuePresenceSync(true);
->>>>>>> Stashed changes
     await liveCollaboration.queueLiveStrokeSync(true);
   }
 
@@ -641,22 +597,13 @@ export function createBoardSessionController({
         return;
       }
 
-<<<<<<< Updated upstream
-      const socketConnected = snapshot.val() === true;
-      if (!socketConnected) {
-=======
       databaseSocketConnected = snapshot.val() === true;
       if (!databaseSocketConnected) {
->>>>>>> Stashed changes
         updateState({ connected: false });
         return;
       }
 
-<<<<<<< Updated upstream
-      void restoreRealtimeConnection();
-=======
       void activateRealtimeConnection();
->>>>>>> Stashed changes
     }, handleDatabaseError);
 
     onValue(openBoardsCountRef, (snapshot) => {
@@ -703,12 +650,9 @@ export function createBoardSessionController({
 
     if (database) {
       goOnline(database);
-<<<<<<< Updated upstream
-=======
       if (databaseSocketConnected) {
         void activateRealtimeConnection();
       }
->>>>>>> Stashed changes
     }
   }
 
