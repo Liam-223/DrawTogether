@@ -35,19 +35,21 @@ function renderConnectionStatusUi({
     return;
   }
 
-  connectionStatus.dataset.state = connected ? "connected" : "disconnected";
-
   if (permissionDenied) {
+    connectionStatus.dataset.state = "disconnected";
     connectionStatus.textContent = activeLabels.rulesBlocked;
     retryConnectBtn.hidden = false;
     return;
   }
 
   if (databaseError) {
+    connectionStatus.dataset.state = "disconnected";
     connectionStatus.textContent = activeLabels.databaseError;
     retryConnectBtn.hidden = false;
     return;
   }
+
+  connectionStatus.dataset.state = connected ? "connected" : "disconnected";
 
   if (connected) {
     connectionStatus.textContent = activeLabels.connected;

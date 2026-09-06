@@ -547,7 +547,12 @@ boardSession = createBoardSessionController({
         active: false
       },
     getLiveStroke: () => inputController?.getCurrentStroke() || null,
-    applyLocalEvent
+    applyLocalEvent,
+    onLocalBoardCleared() {
+      sharedEvents.length = 0;
+      invalidateSharedRenderCache();
+      redrawScene();
+    }
   }
 });
 
@@ -557,6 +562,7 @@ boardSession.onStateChange(() => {
 });
 
 boardSession.onPresenceChange((presence) => {
+  latestPresence = presence;
   peerCount.textContent = `${countOnlineUsers(presence)} online`;
   renderLiveCursors(presence);
 });
@@ -578,6 +584,7 @@ boardSession.onLiveStrokesChange((strokes) => {
 
 boardSession.onExpire(() => {
   sharedEvents.length = 0;
+  latestPresence = {};
   remoteLiveStrokes = [];
   invalidateSharedRenderCache();
   peerCount.textContent = "0 online";

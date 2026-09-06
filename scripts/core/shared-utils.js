@@ -43,7 +43,20 @@ function countOnlineUsers(presence) {
     return 0;
   }
 
-  return Object.keys(presence).length;
+  const onlineUsers = new Set();
+
+  for (const [sessionId, entry] of Object.entries(presence)) {
+    if (!entry || typeof entry !== "object") {
+      continue;
+    }
+
+    const identity = String(entry.authUid || entry.userId || sessionId).trim();
+    if (identity) {
+      onlineUsers.add(identity);
+    }
+  }
+
+  return onlineUsers.size;
 }
 
 function formatRemainingTime(ms) {

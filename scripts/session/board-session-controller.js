@@ -67,7 +67,8 @@ export function createBoardSessionController({
     getProfile,
     getCursorState,
     getLiveStroke,
-    applyLocalEvent
+    applyLocalEvent,
+    onLocalBoardCleared
   } = runtime;
 
   const eventHub = createSessionEventHub();
@@ -114,7 +115,7 @@ export function createBoardSessionController({
     getProfile,
     getCursorState,
     getLiveStroke,
-    onError: handleDatabaseError,
+    onError: handleCollaborationError,
     onRemoteLiveStrokes: eventHub.emitLiveStrokesChange
   });
 
@@ -140,6 +141,17 @@ export function createBoardSessionController({
     }
 
     updateState({ databaseError: true });
+  }
+
+  function handleCollaborationError(error) {
+    console.warn("Realtime collaboration sync failed:", error);
+  }
+
+  function markDatabaseHealthy() {
+    const state = getState();
+    if (state.permissionDenied || state.databaseError) {
+      updateState({ permissionDenied: false, databaseError: false });
+    }
   }
 
   function handleOpenBoardsError(error) {
@@ -206,12 +218,12 @@ export function createBoardSessionController({
 
   async function refreshBoardAccessSession() {
     if (!boardAccessSessionRef || getState().boardExpired) {
-      return;
+      return false;
     }
 
     const deleteAt = Number(getState().boardDeleteAt);
     if (!Number.isFinite(deleteAt) || deleteAt <= Date.now()) {
-      return;
+      return false;
     }
 
     const session = {
@@ -224,8 +236,10 @@ export function createBoardSessionController({
 
     try {
       await set(boardAccessSessionRef, session);
+      return true;
     } catch (error) {
       handleDatabaseError(error);
+      return false;
     }
   }
 
@@ -317,6 +331,7 @@ export function createBoardSessionController({
     try {
       // Publish the clear marker before compacting history so connected clients reset first.
       await set(clearRef, clearEvent);
+      onLocalBoardCleared?.();
 
       const clearSnapshot = await get(clearRef);
       const clearAt = Number(clearSnapshot.child("at").val());
@@ -352,6 +367,26 @@ export function createBoardSessionController({
       handleDatabaseError(error);
       throw error;
     }
+  }
+
+  async function restoreRealtimeConnection() {
+    const sessionReady = await refreshBoardAccessSession();
+    if (!sessionReady || getState().boardExpired) {
+      return;
+    }
+
+    updateState({
+      connected: true,
+      permissionDenied: false,
+      databaseError: false
+    });
+
+    const presenceReady = await liveCollaboration.queuePresenceSync(true);
+    if (presenceReady && myPresenceRef) {
+      onDisconnect(myPresenceRef).remove().catch(handleCollaborationError);
+    }
+
+    await liveCollaboration.queueLiveStrokeSync(true);
   }
 
   async function initialize() {
@@ -464,7 +499,6 @@ export function createBoardSessionController({
     const legacyAccessCodeHash = sanitizePolicyAccessCodeHash(resolvedPolicy?.accessCodeHash);
     const boardOwnerUid = String(resolvedPolicy?.ownerUid || "").trim();
     const boardDeleteAt = Number(resolvedPolicy?.deleteAt);
-    const boardCreatedAt = Number(resolvedPolicy?.createdAt);
     const boardWasCreatedNow = wasBoardMissing && boardOwnerUid === authUid;
 
     if (legacyAccessCodeHash && boardOwnerUid !== authUid) {
@@ -551,23 +585,6 @@ export function createBoardSessionController({
       return;
     }
 
-    const expectedBoardMeta = {
-      createdAt: Number.isFinite(boardCreatedAt) ? boardCreatedAt : Date.now(),
-      deleteAt: boardDeleteAt,
-      ownerUid: boardOwnerUid || authUid,
-      protected: protectedBoard
-    };
-
-    if (boardOwnerUid === authUid) {
-      await runTransaction(ref(database, `${boardPath}/meta`), (current) => {
-        if (!current || typeof current.createdAt !== "number") {
-          return expectedBoardMeta;
-        }
-
-        return current;
-      }).catch(handleDatabaseError);
-    }
-
     try {
       const countSnapshot = await get(openBoardsCountRef);
       const countValue = normalizeOpenBoardsCount(countSnapshot.val());
@@ -581,6 +598,7 @@ export function createBoardSessionController({
 
     onValue(boardPolicyRef, (snapshot) => {
       const policy = snapshot.val();
+      markDatabaseHealthy();
 
       if (!policy || typeof policy.createdAt !== "number") {
         expireBoardNow(false);
@@ -602,18 +620,13 @@ export function createBoardSessionController({
         return;
       }
 
-      const connected = snapshot.val() === true;
-      updateState({ connected, ...(connected ? { databaseError: false } : {}) });
-
-      if (!connected) {
+      const socketConnected = snapshot.val() === true;
+      if (!socketConnected) {
+        updateState({ connected: false });
         return;
       }
 
-      onDisconnect(myPresenceRef).remove();
-      onDisconnect(boardAccessSessionRef).remove();
-      refreshBoardAccessSession();
-      liveCollaboration.queuePresenceSync(true);
-      liveCollaboration.queueLiveStrokeSync(true);
+      void restoreRealtimeConnection();
     }, handleDatabaseError);
 
     onValue(openBoardsCountRef, (snapshot) => {
@@ -630,6 +643,7 @@ export function createBoardSessionController({
         return;
       }
 
+      markDatabaseHealthy();
       const presence = snapshot.val() || {};
       eventHub.emitPresenceChange(presence);
       liveCollaboration.handlePresenceSnapshot(presence);
@@ -659,8 +673,6 @@ export function createBoardSessionController({
 
     if (database) {
       goOnline(database);
-      liveCollaboration.queuePresenceSync(true);
-      liveCollaboration.queueLiveStrokeSync(true);
     }
   }
 

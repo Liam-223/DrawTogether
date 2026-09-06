@@ -34,18 +34,18 @@ export function createLiveCollaboration({
   function queuePresenceSync(force = false) {
     const state = getState();
     if (!state.connected || !presenceRef || state.boardExpired) {
-      return;
+      return Promise.resolve(false);
     }
 
     const now = Date.now();
     if (!force && now - lastPresenceWriteAt < presenceThrottleMs) {
-      return;
+      return Promise.resolve(true);
     }
 
     lastPresenceWriteAt = now;
     const profile = getProfile();
 
-    update(presenceRef, {
+    return update(presenceRef, {
       authUid: getAuthUid(),
       userId: localUserId,
       joinedAt,
@@ -53,7 +53,13 @@ export function createLiveCollaboration({
       color: profile.color,
       cursor: getCursorState(),
       updatedAt: now
-    }).catch(onError);
+    }).then(
+      () => true,
+      (error) => {
+        onError(error);
+        return false;
+      }
+    );
   }
 
   function resetLiveStrokeTracking() {
@@ -70,17 +76,17 @@ export function createLiveCollaboration({
   function queueLiveStrokeSync(force = false) {
     const state = getState();
     if (!state.connected || !liveStrokeRef || state.boardExpired) {
-      return;
+      return Promise.resolve(false);
     }
 
     const stroke = normalizeLiveStroke(getLiveStroke?.());
     if (!stroke) {
-      return;
+      return Promise.resolve(true);
     }
 
     const now = Date.now();
     if (!force && now - lastLiveStrokeWriteAt < presenceThrottleMs) {
-      return;
+      return Promise.resolve(true);
     }
     lastLiveStrokeWriteAt = now;
 
@@ -88,7 +94,7 @@ export function createLiveCollaboration({
     if (strokeChanged) {
       streamedStrokeId = stroke.id;
       streamedPointCount = stroke.points.length;
-      set(liveStrokeRef, {
+      return set(liveStrokeRef, {
         id: stroke.id,
         userId: stroke.userId,
         authorUid: getAuthUid(),
@@ -99,12 +105,17 @@ export function createLiveCollaboration({
         points: stroke.points,
         pointCount: stroke.points.length,
         updatedAt: now
-      }).catch(onError);
-      return;
+      }).then(
+        () => true,
+        (error) => {
+          onError(error);
+          return false;
+        }
+      );
     }
 
     if (stroke.points.length <= streamedPointCount) {
-      return;
+      return Promise.resolve(true);
     }
 
     const patch = {
@@ -116,7 +127,13 @@ export function createLiveCollaboration({
     }
 
     streamedPointCount = stroke.points.length;
-    update(liveStrokeRef, patch).catch(onError);
+    return update(liveStrokeRef, patch).then(
+      () => true,
+      (error) => {
+        onError(error);
+        return false;
+      }
+    );
   }
 
   function getPointCount(liveStroke) {
