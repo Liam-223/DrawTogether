@@ -179,6 +179,14 @@ html.booting #boardCodePill {
   padding: 0.3rem 0.62rem;
 }
 
+#connectionStatus,
+#peerCount {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
 .board-code {
   display: inline-flex;
   align-items: center;
