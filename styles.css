@@ -413,6 +413,23 @@ html.booting #boardCodePill {
   font-size: 0.78rem;
 }
 
+.settings-icon-btn,
+.menu-icon-btn {
+  inline-size: 2.35rem;
+  padding: 0;
+  display: inline-grid;
+  place-items: center;
+}
+
+.settings-icon-btn {
+  font-size: 1rem;
+}
+
+.menu-icon-btn {
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
 .action:focus-visible,
 .swatch:focus-visible,
 #colorPicker:focus-visible,

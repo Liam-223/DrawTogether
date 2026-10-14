@@ -144,7 +144,9 @@ boardCodePill.addEventListener("click", () => {
 
 function syncFullscreenButton() {
   const isFullscreen = document.fullscreenElement === appShell;
-  fullscreenBtn.textContent = isFullscreen ? "Exit fullscreen" : "Fullscreen";
+  const label = isFullscreen ? "Exit fullscreen" : "Fullscreen";
+  fullscreenBtn.setAttribute("aria-label", label);
+  fullscreenBtn.title = label;
   fullscreenBtn.setAttribute("aria-pressed", isFullscreen ? "true" : "false");
 }
 
