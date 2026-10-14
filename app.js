@@ -1,6 +1,7 @@
 import { firebaseConfig } from "./firebase-config.js";
 import {
   airbrushToolBtn,
+  appShell,
   boardCodePill,
   boardCodeValue,
   boardMenu,
@@ -37,6 +38,7 @@ import {
   exportPngForm,
   exportResolutionHint,
   exportPngSettingsBtn,
+  fullscreenBtn,
   identityColorInput,
   joinBoardBtn,
   liveCursors,
@@ -138,6 +140,32 @@ function renderBoardCode() {
 boardCodePill.addEventListener("click", () => {
   boardCodeVisible = !boardCodeVisible;
   renderBoardCode();
+});
+
+function syncFullscreenButton() {
+  const isFullscreen = document.fullscreenElement === appShell;
+  fullscreenBtn.textContent = isFullscreen ? "Exit fullscreen" : "Fullscreen";
+  fullscreenBtn.setAttribute("aria-pressed", isFullscreen ? "true" : "false");
+}
+
+fullscreenBtn.addEventListener("click", async () => {
+  try {
+    if (document.fullscreenElement === appShell) {
+      await document.exitFullscreen();
+    } else if (typeof appShell.requestFullscreen === "function") {
+      await appShell.requestFullscreen();
+    } else {
+      notifications.warning("Fullscreen is not supported by this browser. (Fuck)");
+    }
+  } catch (error) {
+    console.error("Could not change fullscreen mode:", error);
+    notifications.warning("Could not change fullscreen mode. Check your browser permissions.");
+  }
+});
+
+document.addEventListener("fullscreenchange", () => {
+  syncFullscreenButton();
+  cameraController.resizeCanvas();
 });
 
 renderBoardCode();

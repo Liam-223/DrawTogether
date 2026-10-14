@@ -128,6 +128,29 @@ html.booting #boardCodePill {
   gap: 1rem;
 }
 
+.app-shell:fullscreen {
+  width: 100%;
+  height: 100dvh;
+  max-width: none;
+  margin: 0;
+  padding: 1rem;
+  background: var(--bg);
+  grid-template-rows: auto auto minmax(0, 1fr);
+  overflow: auto;
+}
+
+.app-shell:fullscreen .canvas-wrap {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.app-shell:fullscreen #boardCanvas {
+  flex: 1;
+  height: auto;
+  min-height: 0;
+}
+
 .topbar {
   position: relative;
   display: flex;
@@ -1001,6 +1024,15 @@ body {
 
   .app-shell {
     gap: 0.5rem;
+  }
+
+  .app-shell:fullscreen {
+    padding:
+      max(0.55rem, env(safe-area-inset-top))
+      max(0.55rem, env(safe-area-inset-right))
+      calc(var(--mobile-toolbar-height, 145px) + max(0.55rem, env(safe-area-inset-bottom)))
+      max(0.55rem, env(safe-area-inset-left));
+    grid-template-rows: auto minmax(0, 1fr);
   }
 
   .topbar {

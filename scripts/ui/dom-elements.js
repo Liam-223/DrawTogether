@@ -28,6 +28,8 @@ const resetViewBtn = byId("resetViewBtn");
 const clearBoardBtn = byId("clearBoardBtn");
 
 const copyInviteBtn = byId("copyInviteBtn");
+const appShell = byId("appShell");
+const fullscreenBtn = byId("fullscreenBtn");
 const settingsBtn = byId("settingsBtn");
 const retryConnectBtn = byId("retryConnectBtn");
 const newBoardBtn = byId("newBoardBtn");
@@ -83,6 +85,7 @@ document.body.append(brushPreview);
 
 export {
   airbrushToolBtn,
+  appShell,
   boardActionCancelBtn,
   boardActionConfirmBtn,
   boardActionDialog,
@@ -119,6 +122,7 @@ export {
   exportPngForm,
   exportPngSettingsBtn,
   exportResolutionHint,
+  fullscreenBtn,
   identityColorInput,
   joinBoardBtn,
   liveCursors,
