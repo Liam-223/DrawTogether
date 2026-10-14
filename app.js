@@ -172,6 +172,11 @@ document.addEventListener("fullscreenchange", () => {
 
 renderBoardCode();
 
+function renderPeerCount(count) {
+  peerCount.textContent = `${count} 👥`;
+  peerCount.setAttribute("aria-label", `${count} people online`);
+}
+
 const localUserId = crypto.randomUUID();
 const sessionId = crypto.randomUUID();
 const joinedAt = Date.now();
@@ -627,7 +632,7 @@ boardSession.onStateChange(() => {
 
 boardSession.onPresenceChange((presence) => {
   latestPresence = presence;
-  peerCount.textContent = `${countOnlineUsers(presence)} online`;
+  renderPeerCount(countOnlineUsers(presence));
   renderLiveCursors(presence);
 });
 
@@ -651,7 +656,7 @@ boardSession.onExpire(() => {
   latestPresence = {};
   remoteLiveStrokes = [];
   invalidateSharedRenderCache();
-  peerCount.textContent = "0 online";
+  renderPeerCount(0);
   redrawScene({});
   cameraController.clearMoveHintTimer();
   cameraController.hideMoveHint();
@@ -735,7 +740,7 @@ retryConnectBtn.addEventListener("click", () => {
 if (!isFirebaseConfigReady(firebaseConfig)) {
   connectionStatus.dataset.state = "disconnected";
   connectionStatus.textContent = "Set Firebase config";
-  peerCount.textContent = "0 online";
+  renderPeerCount(0);
   retryConnectBtn.hidden = true;
   boardStatus.renderBoardExpiryTimer();
   boardStatus.renderOpenBoardsCount();
